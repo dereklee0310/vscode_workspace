@@ -76,7 +76,7 @@ int main() {
 
     for(int i = 0; i < numOfMaze; i++) {
         scanf("%d", &size);
-        getchar(); // remove the newline in the buffer
+        getchar(); // remove the newline which was left in the buffer by using scanf
 
         createMaze(&maze, size);
         stack = findPath(maze, size);

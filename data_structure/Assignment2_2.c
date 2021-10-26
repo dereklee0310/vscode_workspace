@@ -6,24 +6,28 @@
 
 #define STRINGSIZE 1024
 
+// precedence of operators and parentheses
 enum pre {
-    leftParen,
-    rightParen, 
-    plus,
-    minus,
-    times,
-    divide
+    LeftParen,
+    RightParen, 
+    Plus,
+    Minus,
+    Times,
+    Divide
 };
 
+// a stack store the operators in the transformation of infix to postfix
 struct st {
     enum pre stackArr[STRINGSIZE];
     int top;
 };
 
+// a stack store the digits in the evaluation of postfix
 struct postSt {
     int stackArr[STRINGSIZE];
     int top;
 };
+
 
 bool isValid(char *buf);
 
@@ -48,29 +52,28 @@ void postPush(struct postSt *stack, int element);
 enum pre postPop(struct postSt *stack);
 
 int main() {
-    bool isFisrt = true;
     int numOfCase = 0;
     char buf[STRINGSIZE];
     char *postfix = malloc(sizeof(char) * STRINGSIZE);
 
     scanf("%d", &numOfCase);
-    getchar();
+    getchar(); // remove the newline which was left in the buffer by using scanf
 
     for(int i = 0; i < numOfCase; i++) {
-        fgets(buf, 1025, stdin);
-        if(isFisrt)
-            isFisrt = false;
-        else
-            puts("");
+        fgets(buf, STRINGSIZE + 1, stdin);
+        removeNewline(buf);
+        
         if(isValid(buf)) {
             postfix = toPostfix(buf);
-            if(isValidPos(postfix)) {
+            if(isValidPos(postfix))
                 printf("1 %s", postfix);
-                continue;
-            }
+            else
+                putchar('0');
         }
-
-        printf("0");
+        else
+            putchar('0');
+        if(i != numOfCase - 1)
+            putchar('\n');
     }
     // free memory
     free(postfix);
@@ -79,29 +82,20 @@ int main() {
 
 bool isValid(char *buf)
 {   
-    bool digitFlag = false;
-    bool operatorFlag = false;
-    char *bufPtr = buf;
     enum pre token;
     enum pre isp[] = {0, 19, 12, 12, 13, 13}; // in-stack precedence
     enum pre icp[] = {20, 19, 12, 12, 13, 13}; // incoming precedence
+    char *bufPtr = buf;
     char symbolArr[] = "()+-*/";
     char parenArr[] = "()";
     char operatorArr[] = "+-*/";
     struct st stack;
     stack.top = -1;
 
-    removeNewline(buf);
-
-    //new test of invalid example
-    if(strcmp(buf, "()") == 0)
+    if(strlen(buf) == 1 && isdigit(*buf))
         return false;
-    else if(strlen(buf) == 1 && isdigit(*buf))
-        return false;
-
 
     // check if there is invalid character
-    // puts("valid?");
     while(*bufPtr) {
         if(!isdigit(*bufPtr) && !strchr(symbolArr, *bufPtr))
             return false;
@@ -112,18 +106,14 @@ bool isValid(char *buf)
     while(*bufPtr) {
         if(!isdigit(*bufPtr)) {
             token = getToken(*bufPtr);
-            if(token == rightParen) {
+            if(token == RightParen) {
                 if(isEmpty(stack.top))
                     return false;
-                    // int count = 0; //test
-                while(stack.stackArr[stack.top] != leftParen) {
-                    // count++;
+                while(stack.stackArr[stack.top] != LeftParen) {
                     pop(&stack);
                     if(isEmpty(stack.top))
                         return false;
                 }
-                // if(count == 0)
-                //     return false;
                 pop(&stack);
             } else {
                 while(!isEmpty(stack.top) && isp[stack.stackArr[stack.top]] >= icp[token])
@@ -131,18 +121,6 @@ bool isValid(char *buf)
                 push(&stack, token);
             }
         }
-        bufPtr++;
-    }
-
-    // check if there is an operator after the leftParen or before the rightParen
-    bufPtr = buf;
-    while(*bufPtr) {
-        if(*bufPtr == '(')
-            if(strchr(operatorArr, *(bufPtr + 1)))
-                return false;
-        else if(*bufPtr == ')')
-            if(strchr(operatorArr, *(bufPtr - 1)))
-                return false;
         bufPtr++;
     }
 
@@ -167,11 +145,10 @@ bool isValid(char *buf)
 
             digitFlag = false;
             operatorFlag = true;
-
         }
         bufPtr++;
     }
-    // puts("test_first_valid");
+    
     return true;
 }
 
@@ -214,7 +191,6 @@ bool isValidPos(char *postfix)
     if(stack.top != -1)
         return false;
 
-    // puts("test_post_valid");
     return true;
 }
 
@@ -234,31 +210,23 @@ char *toPostfix(char *buf)
             *postfixPtr++ = *bufPtr;
         } else {
             token = getToken(*bufPtr);
-            if(token == rightParen) {
-                // puts("rightparen");
-                while(stack.stackArr[stack.top] != leftParen) {
+            if(token == RightParen) {
+                while(stack.stackArr[stack.top] != LeftParen)
                     *postfixPtr++ = getSymbol(pop(&stack));
-                    // printf("while_top_%d\n", stack.top);
-                }
                 pop(&stack);
             } else {
-                // puts("here");
-                while(!isEmpty(stack.top) && isp[stack.stackArr[stack.top]] >= icp[token]) {
+                while(!isEmpty(stack.top) && isp[stack.stackArr[stack.top]] >= icp[token])
                     *postfixPtr++ = getSymbol(pop(&stack));
-                }
                 push(&stack, token);
             }
         }
-        // printf("test_whileloop_top_%d__%c\n", stack.top, getSymbol(stack.stackArr[stack.top]));
         bufPtr++;
     }
-    // printf("tset_str_%s\n", buf);
-    // printf("test_top_%d\n", stack.top);
-    while(!isEmpty(stack.top)) {
+
+    while(!isEmpty(stack.top))
         *postfixPtr++ = getSymbol(pop(&stack));
-        // printf("test_____empty\n");
-    }
     *postfixPtr = '\0';
+
     return postfixArr;
 }
 
@@ -272,24 +240,25 @@ void removeNewline(char *buf)
 enum pre getToken(char symbol)
 {   
     enum pre token;
+
     switch(symbol) {
         case '(':
-            token = leftParen;
+            token = LeftParen;
             break;
         case ')':
-            token = rightParen;
+            token = RightParen;
             break;
         case '+':
-            token = plus;
+            token = Plus;
             break;
         case '-':
-            token = minus;
+            token = Minus;
             break;
         case '*':
-            token = times;
+            token = Times;
             break;
         case '/':
-            token = divide;
+            token = Divide;
             break;
     }
 
@@ -306,13 +275,10 @@ bool isEmpty(int top)
 void push(struct st *stack, enum pre token)
 {
     stack->stackArr[++(stack->top)] = token;
-    // printf("push_%d\n", stack->top);
-    return;
 }
 
 enum pre pop(struct st *stack)
 {   
-    // printf("pop%d\n", stack->top);
     return stack->stackArr[(stack->top)--];
 }
 
@@ -320,22 +286,22 @@ char getSymbol(enum pre token)
 {   
     char symbol;
     switch(token) {
-        case leftParen:
+        case LeftParen:
             symbol = '(';
             break;
-        case rightParen:
+        case RightParen:
             symbol = ')';
             break;
-        case plus:
+        case Plus:
             symbol = '+';
             break;
-        case minus:
+        case Minus:
             symbol = '-';
             break;
-        case times:
+        case Times:
             symbol = '*';
             break;
-        case divide:
+        case Divide:
             symbol = '/';
             break;
     }
@@ -346,12 +312,9 @@ char getSymbol(enum pre token)
 void postPush(struct postSt *stack, int element)
 {
     stack->stackArr[++(stack->top)] = element;
-    // printf("push_%d\n", stack->top);
-    return;
 }
 
 enum pre postPop(struct postSt *stack)
 {   
-    // printf("pop%d\n", stack->top);
     return stack->stackArr[(stack->top)--];
 }
