@@ -6,7 +6,7 @@
 
 #define STRINGSIZE 1024
 
-// precedence of operators and parentheses
+// enumaration of operators and parentheses
 enum pre {
     LeftParen,
     RightParen, 
@@ -28,12 +28,11 @@ struct postSt {
     int top;
 };
 
+bool isValid(char *buf, char *postfix);
 
-bool isValid(char *buf);
+bool isValidPostfix(char *postfix);
 
-bool isValidPos(char *postfix);
-
-char *toPostfix(char *buf);
+void toPostfix(char *buf, char *postfix);
 
 void removeNewline(char *buf);
 
@@ -51,10 +50,18 @@ void postPush(struct postSt *stack, int element);
 
 enum pre postPop(struct postSt *stack);
 
+bool isValidString(char *buf);
+
+bool isValidParen(char *buf);
+
+bool isSingleDigit(char *buf);
+
+bool isConsecutive(char *buf);
+
 int main() {
     int numOfCase = 0;
     char buf[STRINGSIZE];
-    char *postfix = malloc(sizeof(char) * STRINGSIZE);
+    char postfix[STRINGSIZE];
 
     scanf("%d", &numOfCase);
     getchar(); // remove the newline which was left in the buffer by using scanf
@@ -63,97 +70,40 @@ int main() {
         fgets(buf, STRINGSIZE + 1, stdin);
         removeNewline(buf);
         
-        if(isValid(buf)) {
-            postfix = toPostfix(buf);
-            if(isValidPos(postfix))
-                printf("1 %s", postfix);
-            else
-                putchar('0');
-        }
+        if(isValid(buf, postfix))
+            printf("1 %s", postfix);
         else
             putchar('0');
+
         if(i != numOfCase - 1)
             putchar('\n');
     }
-    // free memory
-    free(postfix);
+    
     return 0;
 }
 
-bool isValid(char *buf)
+bool isValid(char *buf, char *postfix)
 {   
     enum pre token;
     enum pre isp[] = {0, 19, 12, 12, 13, 13}; // in-stack precedence
     enum pre icp[] = {20, 19, 12, 12, 13, 13}; // incoming precedence
-    char *bufPtr = buf;
     char symbolArr[] = "()+-*/";
-    char parenArr[] = "()";
     char operatorArr[] = "+-*/";
     struct st stack;
     stack.top = -1;
 
-    if(strlen(buf) == 1 && isdigit(*buf))
+    if(!isValidString(buf) || !isValidParen(buf) || isSingleDigit(buf) || isConsecutive(buf)) {
         return false;
-
-    // check if there is invalid character
-    while(*bufPtr) {
-        if(!isdigit(*bufPtr) && !strchr(symbolArr, *bufPtr))
+    } else {
+        toPostfix(buf, postfix);
+        if(!isValidPostfix(postfix))
             return false;
-        bufPtr++;
+        return true;
     }
-    // check if there is any invalid parentheses
-    bufPtr = buf;
-    while(*bufPtr) {
-        if(!isdigit(*bufPtr)) {
-            token = getToken(*bufPtr);
-            if(token == RightParen) {
-                if(isEmpty(stack.top))
-                    return false;
-                while(stack.stackArr[stack.top] != LeftParen) {
-                    pop(&stack);
-                    if(isEmpty(stack.top))
-                        return false;
-                }
-                pop(&stack);
-            } else {
-                while(!isEmpty(stack.top) && isp[stack.stackArr[stack.top]] >= icp[token])
-                    pop(&stack);
-                push(&stack, token);
-            }
-        }
-        bufPtr++;
-    }
-
-    while(!isEmpty(stack.top)) {
-        token = pop(&stack);
-        if(strchr(parenArr, token))
-            return false;
-    }
-    
-    // check if there is any set of consecutive operators or digits
-    bufPtr = buf;
-    while(*bufPtr) {
-        if(isdigit(*bufPtr)) {
-            if(digitFlag)
-                return false;
-
-            digitFlag = true;
-            operatorFlag = false; 
-        } else if(strchr(operatorArr, *bufPtr)) {
-            if(operatorFlag)
-                return false;
-
-            digitFlag = false;
-            operatorFlag = true;
-        }
-        bufPtr++;
-    }
-    
-    return true;
 }
 
 // validate the postfix expression
-bool isValidPos(char *postfix)
+bool isValidPostfix(char *postfix)
 {   
     char *postPtr = postfix;
     struct postSt stack;
@@ -194,13 +144,12 @@ bool isValidPos(char *postfix)
     return true;
 }
 
-char *toPostfix(char *buf)
+void toPostfix(char *buf, char *postfix)
 {   
     enum pre isp[] = {0, 19, 12, 12, 13, 13}; // in-stack precedence
     enum pre icp[] = {20, 19, 12, 12, 13, 13}; // incoming precedence
-    char *postfixArr = malloc(sizeof(char) * STRINGSIZE);
     char *bufPtr = buf;
-    char *postfixPtr = postfixArr;
+    char *postfixPtr = postfix;
     enum pre token;
     struct st stack;
     stack.top = -1;
@@ -226,8 +175,6 @@ char *toPostfix(char *buf)
     while(!isEmpty(stack.top))
         *postfixPtr++ = getSymbol(pop(&stack));
     *postfixPtr = '\0';
-
-    return postfixArr;
 }
 
 void removeNewline(char *buf)
@@ -317,4 +264,92 @@ void postPush(struct postSt *stack, int element)
 enum pre postPop(struct postSt *stack)
 {   
     return stack->stackArr[(stack->top)--];
+}
+
+bool isValidString(char *buf)
+{   
+    char symbolArr[] = "()+-*/";
+    char *bufPtr = buf;
+    
+    while(*bufPtr) {
+        if(!isdigit(*bufPtr) && !strchr(symbolArr, *bufPtr))
+            return false;
+        bufPtr++;
+    }
+    return true;
+}
+
+bool isValidParen(char *buf)
+{   
+    enum pre isp[] = {0, 19, 12, 12, 13, 13}; // in-stack precedence
+    enum pre icp[] = {20, 19, 12, 12, 13, 13}; // incoming precedence
+    enum pre token;
+    char parenArr[] = "()";
+    char *bufPtr = buf;
+    struct st stack;
+
+    stack.top = -1;
+
+    while(*bufPtr) {
+        if(!isdigit(*bufPtr)) {
+            token = getToken(*bufPtr);
+            if(token == RightParen) {
+                if(isEmpty(stack.top))
+                    return false;
+                while(stack.stackArr[stack.top] != LeftParen) {
+                    pop(&stack);
+                    if(isEmpty(stack.top))
+                        return false;
+                }
+                pop(&stack);
+            } else {
+                while(!isEmpty(stack.top) && isp[stack.stackArr[stack.top]] >= icp[token])
+                    pop(&stack);
+                push(&stack, token);
+            }
+        }
+        bufPtr++;
+    }
+
+    while(!isEmpty(stack.top)) {
+        token = pop(&stack);
+        if(strchr(parenArr, token))
+            return false;
+    }
+
+    return true;
+}
+
+bool isSingleDigit(char *buf)
+{   
+    if(strlen(buf) == 1 && isdigit(*buf))
+        return true;
+    return false; 
+}
+
+bool isConsecutive(char *buf)
+{   
+    bool digitFlag = false;
+    bool operatorFlag = false;
+    char operatorArr[] = "+-*/";
+    char *bufPtr = buf;
+
+    while(*bufPtr) {
+        if(isdigit(*bufPtr)) {
+            if(digitFlag)
+                return true;
+
+            digitFlag = true;
+            operatorFlag = false; 
+        } else if(strchr(operatorArr, *bufPtr)) {
+            if(operatorFlag)
+                return true;
+
+            digitFlag = false;
+            operatorFlag = true;
+        }
+        bufPtr++;
+    }
+
+    return false;
 }
