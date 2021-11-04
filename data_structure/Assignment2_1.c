@@ -26,14 +26,17 @@ struct st {
     int top;
 };
 
+// allocate the momory for the maze, map and stack
+void allocateMemory(int ***maze, int ***pathMap, struct st *stack, int size);
+
 // create a new maze and store the input in n x n maze
-void createMaze(int ***maze, int size);
+void createMaze(int **maze, int size);
 
 // return the stack of path except for the position of exit
-struct st findPath(int **maze, int size);
+void findPath(int **maze, int size, struct st *stack);
 
 // create and initialize a route map to record the position we have reached
-void createRouteMap(int ***routeMap, int size);
+void createreachedMap(int **reachedMap, int size);
 
 // create a new stack and push the info of start position into it
 void createStack(struct st *stack, int size);
@@ -54,21 +57,24 @@ struct node pop(struct st *stack);
 bool isOutOfBoundary(struct node nextPos, int size);
 
 // check if the next positon has been reached 
-bool isValidPos(int **maze, int **routeMap, struct node nextPos);
+bool isValidPos(int **maze, int **reachedMap, struct node nextPos);
 
 // calculate the next position by checking different direction and store it in next position
 void setNextPos(struct node *currentPos, struct node *nextPos);
 
 // create the map of the correct path
-void createPathMap(int ***pathMap, struct st stack, int size);
+void createPathMap(int **pathMap, struct st stack, int size);
 
 // print out the path map
 void printPath(int **pathMap, int size);
 
+// free the memory allocated in every for loop in main function
+void freeMemory(int ***maze, int ***pathMap, struct st *stack, int size);
+
 int main() {
     struct st stack;
-    int numOfMaze = 0;
-    int size = 0;
+    int numOfMaze;
+    int size;
     int **maze = NULL;
     int **pathMap = NULL;
     
@@ -78,43 +84,44 @@ int main() {
         scanf("%d", &size);
         getchar(); // remove the newline which was left in the buffer by using scanf
 
-        createMaze(&maze, size);
-        stack = findPath(maze, size);
+        allocateMemory(&maze, &pathMap, &stack, size);
 
-        createPathMap(&pathMap, stack, size);
+        createMaze(maze, size);
+        findPath(maze, size, &stack);
+
+        createPathMap(pathMap, stack, size);
 
         printPath(pathMap, size);
         if(i != numOfMaze - 1)
-            putchar('\n'); // add a new line after the last matrix
-
-        // free memory
-        free(stack.stackArr);
-        for(int i = 0; i < size; i++) {
-            free(maze[i]);
-            free(pathMap[i]);
-        }
-        free(maze);
-        free(pathMap);
+            putchar('\n');
+            
+        freeMemory(&maze, &pathMap, &stack, size);
     }
-
     return 0;
 }
 
-void createMaze(int ***maze, int size)
+void allocateMemory(int ***maze, int ***pathMap, struct st *stack, int size)
 {
+    stack->stackArr = (struct node *)malloc(sizeof(struct node) * MAXSTACKSIZE);
     *maze = (int **)malloc(sizeof(int *) * size);
-    for(int i = 0; i < size; i++)
+    *pathMap = (int **)malloc(sizeof(int *) * size);
+    for(int i = 0; i < size; i++) {
         (*maze)[i] = (int *)malloc(sizeof(int) * size);
+        (*pathMap)[i] = (int *)malloc(sizeof(int) * size);
+    }
+}
 
+void createMaze(int **maze, int size)
+{
     for(int i = 0; i < size; i++) {
         for(int j = 0; j < size; j++) {
-            (*maze)[i][j] = getchar() - '0';
+            maze[i][j] = getchar() - '0';
         }
         getchar(); // remove the newline
     }
 }
 
-struct st findPath(int **maze, int size)
+void findPath(int **maze, int size, struct st *stack)
 {   
     bool isPathfound = false;
     struct node currentPos = {
@@ -122,60 +129,58 @@ struct st findPath(int **maze, int size)
     };
     struct node nextPos = {
         .row = 0, .col = 0, .dir = 0
-    };
-    struct st stack;    
+    }; 
     int exitCoord = size - 1;
-    int **routeMap;
+    int **reachedMap = (int **)malloc(sizeof(int *) * size);
 
-    createStack(&stack, size);
-    createRouteMap(&routeMap, size);
+    for(int i = 0; i < size; i++)
+        reachedMap[i] = (int *)malloc(sizeof(int) * size);
+
+    createStack(stack, size);
+    createreachedMap(reachedMap, size);
     
-    while(!isEmpty(stack.top) && !isPathfound) {
-        currentPos = pop(&stack);
+    while(!isEmpty(stack->top) && !isPathfound) {
+        currentPos = pop(stack);
+        // move forward until no more direction to try or the mouse arrive at the exit
         while(currentPos.dir < MAXDIR && !isPathfound) {
             setNextPos(&currentPos, &nextPos);
             if(nextPos.row == exitCoord && nextPos.col == exitCoord) {
                 isPathfound = true;
-            } else if(isOutOfBoundary(nextPos, size) || !isValidPos(maze, routeMap, nextPos)) {
+            } else if(isOutOfBoundary(nextPos, size) || !isValidPos(maze, reachedMap, nextPos)) {
                 currentPos.dir++;
-            } else if(isValidPos(maze, routeMap, nextPos)){
-                routeMap[nextPos.row][nextPos.col] = 1;
-                if(isFull(stack.top, size))
+            } else if(isValidPos(maze, reachedMap, nextPos)){
+                reachedMap[nextPos.row][nextPos.col] = 1;
+                if(isFull(stack->top, size))
                     exit(1);
                 else
-                    push(&stack, currentPos);
+                    push(stack, currentPos);
                 currentPos = nextPos;
                 currentPos.dir = 0;
             }
         }
     }
-    push(&stack, currentPos);
+    // the current position need to be pushed into stack
+    push(stack, currentPos);
 
     for(int i = 0; i < size; i++)
-        free(routeMap[i]);
-    free(routeMap);
-
-    return stack;
+        free(reachedMap[i]);
+    free(reachedMap);
 }
 
-void createRouteMap(int ***routeMap, int size)
+void createreachedMap(int **reachedMap, int size)
 {   
-    int startCoord = 0;
-    *routeMap = (int **)malloc(sizeof(int *) * size);
-    for(int i = 0; i < size; i++)
-        (*routeMap)[i] = (int *)malloc(sizeof(int) * size);
-
     // initialize
+    int startCoord = 0;
+
     for(int i = 0; i < size; i++)
         for(int j = 0; j < size; j++)
-            (*routeMap)[i][j] = 0;
-    (*routeMap)[startCoord][startCoord] = 1;
+            reachedMap[i][j] = 0;
+    reachedMap[startCoord][startCoord] = 1;
 }
 
 void createStack(struct st *stack, int size)
-{
-    stack->stackArr = (struct node *)malloc(sizeof(struct node) * MAXSTACKSIZE);
-
+{   
+    // initialize
     stack->top = 0;
     stack->stackArr[0].row = 0;
     stack->stackArr[0].col = 0;
@@ -213,9 +218,9 @@ bool isOutOfBoundary(struct node nextPos, int size)
     return false;
 }
 
-bool isValidPos(int **maze, int **routeMap, struct node nextPos)
+bool isValidPos(int **maze, int **reachedMap, struct node nextPos)
 {   
-    if(maze[nextPos.row][nextPos.col] == 1 && routeMap[nextPos.row][nextPos.col] == 0)
+    if(maze[nextPos.row][nextPos.col] == 1 && reachedMap[nextPos.row][nextPos.col] == 0)
         return true;
     return false;
 }
@@ -240,21 +245,18 @@ void setNextPos(struct node *currentPos, struct node *nextPos)
     }
 }
 
-void createPathMap(int ***pathMap, struct st stack, int size)
+void createPathMap(int **pathMap, struct st stack, int size)
 {   
     int exitCoord = size - 1;
-
-    *pathMap = (int **)malloc(sizeof(int *) * size);
-    for(int i = 0; i < size; i++)
-        (*pathMap)[i] = (int *)malloc(sizeof(int) * size);
     
     for(int i = 0; i < size; i++)
         for(int j = 0; j < size; j++)
-            (*pathMap)[i][j] = 0;
+            pathMap[i][j] = 0;
 
+    // draw the path of mouse
     for(int i = 0; i <= stack.top; i++)
-        (*pathMap)[stack.stackArr[i].row][stack.stackArr[i].col] = 1;
-    (*pathMap)[exitCoord][exitCoord] = 1;
+        pathMap[stack.stackArr[i].row][stack.stackArr[i].col] = 1;
+    pathMap[exitCoord][exitCoord] = 1;
 }
 
 void printPath(int **pathMap, int size)
@@ -266,6 +268,17 @@ void printPath(int **pathMap, int size)
             putchar(' ');
 
         if(i != size - 1)
-            putchar('\n'); // add a new line after each row
+            putchar('\n');
     }
+}
+
+void freeMemory(int ***maze, int ***pathMap, struct st *stack, int size)
+{
+    free(stack->stackArr);
+    for(int i = 0; i < size; i++) {
+        free((*maze)[i]);
+        free((*pathMap)[i]);
+    }
+    free(*maze);
+    free(*pathMap);
 }
