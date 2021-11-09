@@ -18,14 +18,16 @@ void removeNewline(char *buf);
 // create a circular linked list for solving Josephus problem
 struct node *createList(struct node *list, char *buf);
 
-// insert the person into the circular linked list
+// insert the given person into the circular linked list
 struct node *insert(struct node *list, struct node **tail, char *name);
 
 // find the person killed in each turn and the person who is survived
 void findSurvivor(struct node *list, int step, int direction);
 
+// get the number of people
 int getSizeOfList(struct node *list);
 
+// delete the given person in the circular linked list
 struct node *delete(struct node **list, struct node **previousNode, struct node **listPtr, int direction);
 
 int main() {
@@ -37,14 +39,8 @@ int main() {
     fgets(buf, STRINGSIZE + 1, stdin);
     removeNewline(buf);
     scanf("%d %d", &step, &direction);
+
     list = createList(list, buf);
-    // // test
-    // struct node *testPtr = list;
-    // while(testPtr->next != list) {
-    //     printf("test_%s\n", testPtr->name);
-    //     testPtr = testPtr->next;
-    // }
-    // printf("test_%s\n", testPtr->name);
     findSurvivor(list, step, direction);
 
     return 0;
@@ -64,7 +60,6 @@ struct node *createList(struct node *list, char *buf)
     name = strtok(buf, ", ");
 
     while(name != NULL) {
-        // printf("test_%s\n", token);
         list = insert(list, &tail, name);
         name = strtok(NULL, ", ");
     }
@@ -75,6 +70,7 @@ struct node *insert(struct node *list, struct node **tail, char *name)
 {
     struct node *newNode;
 
+    // create a new node
     newNode = (struct node *)malloc(sizeof(struct node));
     newNode->name = malloc(sizeof(char) * strlen(name));
     strcpy(newNode->name, name);
@@ -100,33 +96,18 @@ void findSurvivor(struct node *list, int step, int direction)
     int killNumber;
 
     while(list->next != list) {
-        // // test
-        // struct node *testPtr = list;
-        // while(testPtr->next != list) {
-        //     printf("test_find_%s\n", testPtr->name);
-        //     testPtr = testPtr->next;
-        // }
-        // printf("test_last_%s\n", testPtr->name);
-        // // test
         size = getSizeOfList(list);
-        // killNumber = (direction == CLOCKWISE) ? step : size - step;
-        if(direction == CLOCKWISE) {
+        if(direction == CLOCKWISE)
             killNumber = step;
-        } else {
-            if(step == size)
-                killNumber = step;
-            else if(step < size)
-                killNumber = size - step;
-            else
-                killNumber = size - (step % size);
-        }
+        else
+            killNumber = (step == size) ? step : size - (step % size); 
+
         for(int i = 0; i < killNumber; i++) {
             previousNode = listPtr;
             listPtr = listPtr->next;
         }
         printf("%s is killed.\n", listPtr->name);
-
-        listPtr = delete(&list, &previousNode, &listPtr, direction); // return the next position of deleted node (clockwise?).
+        listPtr = delete(&list, &previousNode, &listPtr, direction);
     }
 
     printf("%s is survived.", listPtr->name);
@@ -141,25 +122,21 @@ int getSizeOfList(struct node *list)
         count++;
         listPtr = listPtr->next;
     }
-    count++;
+    count++; // the node before the head of circular linked list
     return count;
 }
 
 struct node *delete(struct node **list, struct node **previousNode, struct node **listPtr, int direction)
 {   
-    if(*listPtr == *list) {
+    if(*listPtr == *list)
         *list = (*listPtr)->next;
-    }
 
-    // // test
-    // printf("test_%s__%s\n", (*previousNode)->next->name, (*listPtr)->next->name);
-    // // test
     (*previousNode)->next = (*listPtr)->next;
     free((*listPtr)->name);
     free((*listPtr));
 
     if(direction == CLOCKWISE)
-        return (*previousNode)->next;
+        return (*previousNode)->next; // next node
     else
-        return (*previousNode);
+        return (*previousNode); // node before the deleted node
 }
