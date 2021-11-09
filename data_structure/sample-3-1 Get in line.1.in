@@ -1,0 +1,12 @@
+11
+insert 0 Amy
+insert 1 Jerry
+insert 1 Peter
+query 1
+query 2
+delete 2
+query 2
+insert 1 Ray
+swap 2 3
+query 3
+query 5

@@ -6,51 +6,66 @@
 
 #define STRSIZE 1024
 
+// flag to determine if a newline is need to be printed
+bool isStrPrinted = false;
+
+// enumeration of instructions
 enum ins{
     Insert,
     Delete,
     Swap,
-    Query
+    Query,
+    Error
 };
 
-//insert delete swap query
-
+// structure of the nodes in linked list
 struct node{
     char *name;
     int idx;
     struct node *next; 
 };
 
+// remove the unnecessary newline in given string
 void removeNewline(char *buf);
 
+// get the token of instruction
 enum ins getToken(char *buf);
 
-struct node insert(struct node *queue, char *buf);
+// insert the person after the the given position in queue
+struct node *insert(struct node *queue, char *buf);
 
-struct node delete(struct node *queue, char *buf);
+// delete the person at the given position in queue 
+struct node *delete(struct node *queue, char *buf);
 
-struct node swap(struct node *queue, char *buf);
+// swap the persons at the given positions
+struct node *swap(struct node *queue, char *buf);
 
+// print the name of the person which is at the given position
 void query(struct node *queue, char *buf);
 
-int getIdx(char *buf);
+// create a new node for the insertion
+struct node *createNewNode(int idx, char *name);
 
-int getName(char *buf);
+// change the indices due to the insertion or deletion
+void changeIndex(struct node *nodePtr, int offset);
+
+// concatenate the given nodes to swap node1 and node2
+void concatenate(struct node **preNode1, struct node **preNode2, struct node **node1, struct node **node2);
 
 int main() {
     enum ins token;
     struct node *queue;
     int numOfInstruction;
-    int token;
     char buf[STRSIZE];
 
+    // create initial node
     queue = (struct node *)malloc(sizeof(struct node));
     queue->idx = 0;
     queue->next = NULL;
 
     scanf("%d", &numOfInstruction);
+    getchar(); // flush the newline from buffer
 
-    buf = malloc(sizeof(char) * ma)
     for(int i = 0; i < numOfInstruction; i++) {
         fgets(buf, STRSIZE + 1, stdin);
         removeNewline(buf);
@@ -69,10 +84,26 @@ int main() {
             case Query:
                 query(queue, buf);
                 break;
-            default:
+            case Error:
                 fprintf(stderr, "invalid instruction!\n");
                 exit(1);
-        }   
+        }
+
+        // print the newline if necessary
+        if(i != numOfInstruction - 1 && isStrPrinted) {
+            isStrPrinted = false;
+            putchar('\n');
+        }
+    }
+
+    // free memory
+    struct node *nodePtr = queue;
+    struct node *tmp = NULL;
+    while(nodePtr) {
+        tmp = nodePtr;
+        free(tmp->name);
+        free(tmp);
+        nodePtr = nodePtr->next;
     }
 
     return 0;
@@ -80,7 +111,7 @@ int main() {
 
 void removeNewline(char *buf)
 {   
-    if(buf[strlen(buf) - 1 == '\n'])
+    if(buf[strlen(buf) - 1] == '\n')
         buf[strlen(buf) - 1] = '\0';
 }
 
@@ -94,132 +125,154 @@ enum ins getToken(char *buf)
         return Swap;
     else if(strncmp(buf, "query", 5) == 0)
         return Query;
+    return Error;
 }
 
-struct node insert(struct node *queue, char *buf)
+struct node *insert(struct node *queue, char *buf)
 {   
-    char *bufPtr = buf + 7; // move to the position of index in buf
-    struct node *newNode = (struct node *)malloc(sizeof(struct node));
-
-    newNode->idx = getIdx(bufPtr); //! +1 because it need to be appended after the position of idx (use anotehr idx to record it)
-    newNode->name = getName(bufPtr);
-
-    if(!queue) {
-        newNode->next = NULL;
-        return newNode;
-    }
-        struct node *queuePtr = queue;
-        while(queuePtr && queuePtr->idx != newNode->idx)
-            queuePtr = queuePtr->next;
-        
-        if(!queuePtr) {
-            printf("no reslut\n");
-            return queue;
-        }
-    
-        newNode->next = queuePtr->next;
-        queuePtr->next = newNode;
-        return queue;
-}
-
-struct node delete(struct node *queue, char *buf)
-{   
-    char *bufPtr = buf + 7;
+    struct node *newNode;
     int idx;
-    char *name;
-    struct node *lastPtr = NULL;
+    char instruction[STRSIZE];
+    char name[STRSIZE];
 
-    idx = getIdx(bufPtr);
-    name = getName(bufPtr);
+    sscanf(buf, "%s %d %s", instruction, &idx, name);
 
-    struct node *queuePtr = queue;
-    while(queuePtr && queuePtr->idx != idx) {
-        lastPtr = queuePtr;
-        queuePtr = queuePtr->next;
-    }
-    if(!queuePtr) {
-        printf("no reslut\n");
+    newNode = createNewNode(idx, name);
+
+    struct node *nodePtr = queue;
+    while(nodePtr && nodePtr->idx != idx)
+        nodePtr = nodePtr->next;
+    
+    if(!nodePtr) {
+        printf("no reslut");
+        isStrPrinted = true;
         return queue;
     }
 
-    lastPtr->next = queuePtr->next;
-    free(queuePtr);
-    return queue;
+    newNode->next = nodePtr->next;
+    nodePtr->next = newNode;
 
+    // all the indices of nodes after the new node need to +1
+    changeIndex(newNode->next, 1);
+
+    return queue;
 }
 
-struct node swap(struct node *queue, char *buf)
+struct node *delete(struct node *queue, char *buf)
 {   
-    char *bufPtr = buf + 4;
-    int idx1 = getIdx(bufPtr);
-    int idx2 = getIdx(bufPtr); // !wrong
-    struct node *lastPtr = NULL;
-    struct node *lastPtr1 = NULL;
-    struct node *lastPtr2 = NULL;
-    struct node *node1;
-    struct node *node2;
+    int idx;
+    char instruction[STRSIZE];
 
-    struct node queuePtr = queue;
-    while(queuePtr) {
-        lastPtr = queuePtr;
-        if(queuePtr->idx == idx1) {
-            lastPtr1 = lastPtr;
-            node1 = queuePtr;
-        }
-        if(queuePtr->idx == idx2) {
-            lastPtr2 = lastPtr;
-            node2 = queuePtr;
-        }
+    sscanf(buf, "%s %d", instruction, &idx);
 
+    struct node *nodePtr = queue;
+    struct node *lastNode = NULL;
+    while(nodePtr && nodePtr->idx != idx) {
+        lastNode = nodePtr;
+        nodePtr = nodePtr->next;
+    }
+
+    if(!nodePtr || !lastNode) {
+        printf("no reslut");
+        isStrPrinted = true;
+        return queue;
+    }
+
+    lastNode->next = nodePtr->next;
+    free(nodePtr->name);
+    free(nodePtr);
+
+    // all the nodes afte the deleted node need to -1
+    changeIndex(lastNode->next, -1);
+
+    return queue;
+} 
+
+struct node *swap(struct node *queue, char *buf)
+{   
+    struct node *preNode1 = NULL, *preNode2 = NULL;
+    struct node *node1 = NULL, *node2 = NULL;
+    int idx1, idx2;
+    char instruction[STRSIZE];
+
+    sscanf(buf, "%s %d %d", instruction, &idx1, &idx2);
+
+    if(idx1 == idx2)
+        return queue;
+
+    struct node *nodePtr = queue;
+    while(nodePtr) {
+        if(nodePtr->idx == idx1 - 1) {
+            preNode1 = nodePtr;
+            node1 = nodePtr->next;
+        }
+        if(nodePtr->idx == idx2 - 1) {
+            preNode2 = nodePtr;
+            node2 = nodePtr->next;
+        }
         if(node1 && node2)
             break;
 
-        queuePtr = queuePtr->next;
+        nodePtr = nodePtr->next;
     }
 
-    if(!queuePtr) {
-        printf("no reslut\n");
-        return queue;
+    if(!nodePtr) { // if the given index is not in the queue, print no result
+        printf("no result");
+        isStrPrinted = true;
+    } else {
+        concatenate(&preNode1, &preNode2, &node1, &node2);
     }
-
-    // swap
-    node2->next = lastPtr1->next;
-    lastPtr1->next = node2;
-
-    node1->next = lastPtr2->next;
-    lastPtr2->next = node1;
 
     return queue;
 }
 
 void query(struct node *queue, char *buf)
 {
-    struct node *queuePtr = queue;
-    char *bufPtr = buf + 5;
+    char instruction[STRSIZE];
+    int idx;
 
-    int idx = getIdx(bufPtr);
+    sscanf(buf, "%s %d", instruction, &idx);
 
-    while(queuePtr && queuePtr->idx) {
-        if(queuePtr->idx == idx)
-            break;
-        queuePtr = queuePtr->next;
-    }
+    struct node *nodePtr = queue;
+    while(nodePtr && nodePtr->idx != idx)
+        nodePtr = nodePtr->next;
 
-    if(queuePtr) {
-        printf("%s\n", queuePtr->name);
+    if(nodePtr && nodePtr->name)
+        printf("%s", nodePtr->name);
+    else
+        printf("no result");
+    isStrPrinted = true;
+}
+
+struct node *createNewNode(int idx, char *name)
+{   
+    struct node *newNode;
+
+    newNode = (struct node *)malloc(sizeof(struct node));
+    newNode->name = (char *)malloc(sizeof(char) * strlen(name));
+    newNode->idx = idx + 1;
+    strcpy(newNode->name, name);
+    return newNode;
+}
+
+void changeIndex(struct node *nodePtr, int offset)
+{
+    while(nodePtr) {
+        nodePtr->idx += offset;
+        nodePtr = nodePtr->next;
     }
 }
 
-int getIdx(char *buf)
+void concatenate(struct node **preNode1, struct node **preNode2, struct node **node1, struct node **node2)
 {
-    return atoi(buf); //! use strtol?
-}
+    (*preNode1)->next = *node2;
+    (*preNode2)->next = *node1;
 
-int getName(char *buf)
-{
-    char *bufPtr = buf;
+    int tmpIdx = (*node2)->idx;
+    (*node2)->idx = (*node1)->idx;
+    (*node1)->idx = tmpIdx;
 
-    while(*bufPtr && isdigit(*bufPtr))
-        bufPtr++;
-    return bufPtr;
+    struct node *tmpPtr = (*node2)->next;
+    (*node2)->next = (*node1)->next;
+    (*node1)->next = tmpPtr;
 }
