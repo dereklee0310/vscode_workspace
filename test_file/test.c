@@ -1,9 +1,8 @@
 #include <stdio.h>
 
 int main() {
-    printf("´ú¸Õ");
+    printf("æ¸¬è©¦");
     char a = 1;
     printf("%d\n", a);
-    printf("%c\n", a);
     return 0;
 }
