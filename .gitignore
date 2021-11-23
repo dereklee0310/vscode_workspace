@@ -1,3 +1,4 @@
 .vscode/
 data_structure/.vscode
-* .exe
+data_structure/*.exe
+*.exe
