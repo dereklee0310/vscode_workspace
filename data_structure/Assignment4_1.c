@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAZQUEUESIZE 123 // ! need to calculate
+#define MAXQUEUESIZE 300 // ! need to calculate
 
 // structure of nodes in the BST tree
 struct node {
@@ -22,6 +22,9 @@ struct node *insert(struct node *tree, int data);
 // delete a data in the tree
 struct node *delete(struct node *tree, int data);
 
+// get the node in right subtree whose value is the smallest 
+struct node *getMinNode(struct node *tree);
+
 // print the sequence of data in infix order
 void printInfixOrder(struct node *tree);
 
@@ -29,7 +32,7 @@ void printInfixOrder(struct node *tree);
 void printLevelOrder(struct node *tree);
 
 // check if the queue is empty
-bool isEmpty(void)
+bool isEmpty(void);
 
 // push a node into the queue
 void push(struct node *treeNode);
@@ -37,25 +40,28 @@ void push(struct node *treeNode);
 // pop out a node from the queue
 struct node *pop(void);
 
+
 int main() {
     struct node *tree = NULL;
     int numOfData;
     int data;
 
     scanf("%d", &numOfData);
-    for(int i = 0; i < numOfData; i++)
+    for(int i = 0; i < numOfData; i++) {
+        scanf("%d", &data);
         tree = insert(tree, data);
+    }
 
-    scanf("%d", numOfData);
-    for(int i = 0; i < numOfData; i++)
-    tree = delete(tree, data);
+    scanf("%d", &numOfData);
+    for(int i = 0; i < numOfData; i++) {
+        scanf("%d", &data);
+        tree = delete(tree, data);
+    }
     
-
-    puts("Output:");
-    print("Infixorder:");
+    printf("Infixorder:");
     printInfixOrder(tree);
     putchar('\n');
-    puts("Levelorder:");
+    printf("Levelorder:");
     printLevelOrder(tree);
     return 0;
 }
@@ -76,43 +82,62 @@ struct node *insert(struct node *tree, int data)
         tree->left = insert(tree->left, data);
     else
         tree->right = insert(tree->right, data);
-    return tree;D
+    return tree;
 }
 
 struct node *delete(struct node *tree, int data)
 {   
+    struct node *tmp;
+
     if(!tree)
         return tree;
 
     if(data == tree->data) {
-        if(!tree->left && !tree->right) {
+        if(!tree->left) {
+            tmp = tree->right;
             free(tree);
-            tree = NULL;
-        } else if(tree->left && !tree->right) {
-            // todo
+            return tmp;
+        } else if(!tree->right) {
+            tmp = tree->left;
+            free(tree);
+            return tmp;
         }
+
+        tmp = getMinNode(tree->right);
+        tree->data = tmp->data;
+        tree->right = delete(tree->right, tree->data);
     } else if(data < tree->data) {
-        delete(tree->left, data);
+        tree->left = delete(tree->left, data);
     } else {
-        delete(tree->right, data);
+        tree->right = delete(tree->right, data);
     }
     return tree;
 }
 
-void printInfixOrder(struct node *tree
+struct node *getMinNode(struct node *tree)
+{
+    while(tree && tree->left) {
+        tree = tree->left;
+    }
+    return tree;
+}
+
+void printInfixOrder(struct node *tree)
 {   
-    printInfixOrder(tree->left);
-    print(" %d", tree->data);
-    printInfixOrder(tree->right);
+    if(tree) {
+        printInfixOrder(tree->left);
+        printf(" %d", tree->data);
+        printInfixOrder(tree->right);
+    }
 }
 
 void printLevelOrder(struct node *tree)
 {   
-    struct node *currentNode = NULL:
+    struct node *currentNode = NULL;
 
     push(tree);
     
-    while(!isEmpty) {
+    while(!isEmpty()) {
         currentNode = pop();
         printf(" %d", currentNode->data);
         if(currentNode->left)
@@ -124,10 +149,10 @@ void printLevelOrder(struct node *tree)
 
 bool isEmpty(void)
 {
-    return front == queue ? true : false; 
+    return front == rear ? true : false; 
 }
 
-void push(struct node *treeNode);
+void push(struct node *treeNode)
 {
     queue[++rear] = treeNode;
 }
