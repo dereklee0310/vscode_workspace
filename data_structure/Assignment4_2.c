@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAXQUEUESIZE 300 // ! need to calculate
+#define MAXQUEUESIZE 300
 
 // structure of nodes in the BST tree
 struct node {
@@ -12,6 +12,7 @@ struct node {
     struct node *right;
 };
 
+// structure of queue that record its front and rear 
 struct que {
     int front;
     int rear;
@@ -21,19 +22,19 @@ struct que {
 // insert a new data into the tree
 struct node *insert(struct node *tree, int data);
 
-// // check if the queue is empty
-// bool isEmpty(void);
-
 // push a node into the queue
 void push(struct que *queue, int data);
 
 // pop out a node from the queue
 int pop(struct que *queue);
 
+// initialize the values of front and rear of different queues respectively
 void initQueue(struct que *keyQueue, struct que *treasureQueue, struct que *pathQueue);
 
+// get the queue recording the path from root to the given node
 struct que getQueue(struct node *tree, struct que *queue, int data);
 
+// get the queue recording the path from root through the key node to the treasure node
 struct que getPath(struct que *pathQueue, struct que keyQueue, struct que treasureQueue);
 
 int main() {
@@ -52,21 +53,14 @@ int main() {
     scanf("%d", &treasure);
     
     initQueue(&keyQueue, &treasureQueue, &pathQueue);
+
     keyQueue = getQueue(tree, &keyQueue, key);
     treasureQueue = getQueue(tree, &treasureQueue, treasure);
 
-    // while(keyQueue.front != keyQueue.rear - 1)
-    //     printf("%d->", pop(&keyQueue));
-    // printf("%d", pop(&keyQueue));
-    // puts("\n-------------");
-    // while(treasureQueue.front != treasureQueue.rear - 1)
-    //     printf("%d->", pop(&treasureQueue));
-    // printf("%d", pop(&treasureQueue));
-
     pathQueue = getPath(&pathQueue, keyQueue, treasureQueue);
-    while(pathQueue.front != pathQueue.rear - 1)
+    while(pathQueue.front != pathQueue.rear - 1) // leave out the last element in queue to avoid printing redundant "->"
         printf("%d->", pop(&pathQueue));
-    printf("%d", pop(&pathQueue));
+    printf("%d", pop(&pathQueue)); // print the last element in queue
 
     return 0;
 }
@@ -89,11 +83,6 @@ struct node *insert(struct node *tree, int data)
         tree->right = insert(tree->right, data);
     return tree;
 }
-
-// bool isEmpty(void)
-// {
-//     return front == rear ? true : false; 
-// }
 
 void push(struct que *queue, int data)
 {
@@ -135,21 +124,25 @@ struct que getQueue(struct node *tree, struct que *queue, int data)
 
 struct que getPath(struct que *pathQueue, struct que keyQueue, struct que treasureQueue)
 {   
+    // path from root to the key node
     for(int i = keyQueue.front + 1; i < keyQueue.rear; i++)
         push(pathQueue, keyQueue.queueArr[i]);
-
+    
+    // find the lowest common ancestor between key node and treasure node
     while(keyQueue.queueArr[keyQueue.front + 1] == treasureQueue.queueArr[(treasureQueue.front + 1)]) {
         if(keyQueue.queueArr[(keyQueue.front + 2)] == treasureQueue.queueArr[(treasureQueue.front + 2)]) {
             pop(&keyQueue);
             pop(&treasureQueue);
         } else {
-            pop(&keyQueue); // remove redundant parent node
+            pop(&keyQueue); // remove redundant ancestor nodes
             break;
         }
     }
-    // pop out the elements in keyQueue reversely
+    // pop out the elements in keyQueue reversely to get the path from key to lowest common ancestor
     for(int i = keyQueue.rear; i >= keyQueue.front + 1; i--)
         push(pathQueue, keyQueue.queueArr[i]);
+
+    // path from lowest common ancestor to treasure node
     while(treasureQueue.front != treasureQueue.rear)
         push(pathQueue, pop(&treasureQueue));
 

@@ -3,15 +3,16 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAXQUEUESIZE 300 // ! need to calculate
+#define MAXQUEUESIZE 300
 
-// structure of nodes in the BST tree
+// structure of nodes in the BST 
 struct node {
     int data;
     struct node *left;
     struct node *right;
 };
 
+// structure of the queue for level order traversal
 struct node *queue[MAXQUEUESIZE];
 int front = -1;
 int rear = -1;
@@ -22,7 +23,7 @@ struct node *insert(struct node *tree, int data);
 // delete a data in the tree
 struct node *delete(struct node *tree, int data);
 
-// get the node in right subtree whose value is the smallest 
+// get the node in given subtree whose value is the smallest 
 struct node *getMinNode(struct node *tree);
 
 // print the sequence of data in infix order
@@ -40,18 +41,22 @@ void push(struct node *treeNode);
 // pop out a node from the queue
 struct node *pop(void);
 
+// free the allocated memory in BST
+void freeTree(struct node *tree);
 
 int main() {
     struct node *tree = NULL;
     int numOfData;
     int data;
 
+    // insert
     scanf("%d", &numOfData);
     for(int i = 0; i < numOfData; i++) {
         scanf("%d", &data);
         tree = insert(tree, data);
     }
 
+    // delete
     scanf("%d", &numOfData);
     for(int i = 0; i < numOfData; i++) {
         scanf("%d", &data);
@@ -60,9 +65,12 @@ int main() {
     
     printf("Infixorder:");
     printInfixOrder(tree);
-    putchar('\n');
+    putchar('\n'); // seperate the infix and level order sequence
     printf("Levelorder:");
     printLevelOrder(tree);
+
+    freeTree(tree);
+
     return 0;
 }
 
@@ -160,4 +168,13 @@ void push(struct node *treeNode)
 struct node *pop(void)
 {   
     return queue[++front];
+}
+
+void freeTree(struct node *tree)
+{
+    if(tree) {
+        freeTree(tree->left);
+        freeTree(tree->right);
+        free(tree);
+    }
 }
