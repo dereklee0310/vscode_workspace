@@ -33,7 +33,7 @@ int main() {
     struct rv *river;
     int riverNum, pointNum;
     int vertice1, vertice2, distance;
-    int **adjMatrix; // todo
+    int **adjMatrix;
     unsigned long long relationNum = 0;
     unsigned long long *distanceArr;
 
@@ -116,7 +116,7 @@ unsigned long long *Dijkstra(int **adjMatrix, int pointNum)
     
     isfound[0] = true;
     distanceArr[0] = 0;
-    for(int i = 0; i < pointNum - 2; i++) {
+    for(int i = 0; i < pointNum; i++) {
         curPoint = getMin(distanceArr, pointNum, isfound);
         for(int j = 0; j < pointNum; j++)
             if(!isfound[j])
@@ -137,7 +137,7 @@ void getRank(struct rv *river, int riverNum)
 {   
     int rank = 1;
 
-    qsort(river, riverNum, sizeof(struct rv), cmp); //todo cmp need to reverse
+    qsort(river, riverNum, sizeof(struct rv), cmp); // reverse
     for(int i = 0; i < riverNum; i++) {
         if(i == 0) {
             river[i].rank = rank;
@@ -152,7 +152,7 @@ void getRank(struct rv *river, int riverNum)
     // for(int i = 0; i < riverNum; i++)
     //     printf("%s %d\n", river[i].name, river[i].distance);
 
-    qsort(river, riverNum, sizeof(struct rv), rCmp); //todo cmp need to reverse (restore to origin arr)
+    qsort(river, riverNum, sizeof(struct rv), rCmp); // restore to origin array
 }
 
 int getMin(unsigned long long *distanceArr, int pointNum, bool *isfound)
