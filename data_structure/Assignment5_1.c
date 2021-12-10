@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
 
 #define MAXLEN  1000000001
 
@@ -98,7 +99,6 @@ int **createMatrix(int **adjMatrix, int pointNum)
 void addEdge(int **adjMatrix, int vertice1, int vertice2, int distance)
 {
     adjMatrix[vertice1][vertice2] = distance;
-    adjMatrix[vertice2][vertice1] = distance;
 }
 
 unsigned long long *Dijkstra(int **adjMatrix, int pointNum)
@@ -158,7 +158,7 @@ void getRank(struct rv *river, int riverNum)
 int getMin(unsigned long long *distanceArr, int pointNum, bool *isfound)
 {
     int minPos = 0;
-    unsigned long long min = MAXLEN;
+    unsigned long long min = ULONG_MAX;
 
     for(int i = 0; i < pointNum; i++) {
         if(distanceArr[i] < min && !isfound[i]) {
