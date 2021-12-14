@@ -24,7 +24,7 @@ void getDistance(struct rv *river, int riverNum, unsigned long long *distanceArr
 
 void getRank(struct rv *river, int riverNum);
 
-int getMin(unsigned long long *distanceArr, int pointNum, bool *isfound);
+unsigned long long getMin(unsigned long long *distanceArr, int pointNum, bool *isfound);
 
 int cmp(const void *riv1, const void *riv2);
 
@@ -35,7 +35,7 @@ int main() {
     int riverNum, pointNum;
     int vertice1, vertice2, distance;
     int **adjMatrix;
-    unsigned long long relationNum = 0;
+    unsigned long long relationNum;
     unsigned long long *distanceArr;
 
     scanf("%d %d", &riverNum, &pointNum);
@@ -69,9 +69,9 @@ int main() {
     //     printf("%s %d\n", river[i].name, river[i].distance);
 
     getDistance(river, riverNum, distanceArr);
-    // // test
-    // for(int i = 0; i < riverNum; i++)
-    //     printf("%s %d\n", river[i].name, river[i].distance);
+    // test
+    for(int i = 0; i < riverNum; i++)
+        printf("%s %d\n", river[i].name, river[i].distance);
 
     getRank(river, riverNum);
     for(int i = 0; i < riverNum; i++)
@@ -105,7 +105,7 @@ unsigned long long *Dijkstra(int **adjMatrix, int pointNum)
 {   
     unsigned long long *distanceArr;
     bool *isfound;
-    int curPoint;
+    unsigned long long curPoint;
 
     distanceArr = (unsigned long long *)malloc(sizeof(unsigned long long) * pointNum);
     isfound = (bool *)malloc(sizeof(bool) * pointNum);
@@ -113,15 +113,25 @@ unsigned long long *Dijkstra(int **adjMatrix, int pointNum)
         distanceArr[i] = adjMatrix[0][i];
         isfound[i] = false;
     }
+
+    // for(int i = 0; i < pointNum; i++)
+    //         printf("dijktest_%d\n", distanceArr[i]);
+    //     puts("-first-");
     
     isfound[0] = true;
     distanceArr[0] = 0;
-    for(int i = 0; i < pointNum; i++) {
+    for(int i = 0; i < pointNum - 2; i++) {
         curPoint = getMin(distanceArr, pointNum, isfound);
+        isfound[curPoint] = true;
         for(int j = 0; j < pointNum; j++)
             if(!isfound[j])
                 if(distanceArr[curPoint] + (unsigned long long)adjMatrix[curPoint][j] < distanceArr[j])
                     distanceArr[j] = distanceArr[curPoint] + (unsigned long long)adjMatrix[curPoint][j];
+        
+        // // test
+        // for(int i = 0; i < pointNum; i++)
+        //     printf("dijktest_%d\n", distanceArr[i]);
+        // puts("--------------------");
     }
 
     return distanceArr;
@@ -155,7 +165,7 @@ void getRank(struct rv *river, int riverNum)
     qsort(river, riverNum, sizeof(struct rv), rCmp); // restore to origin array
 }
 
-int getMin(unsigned long long *distanceArr, int pointNum, bool *isfound)
+unsigned long long getMin(unsigned long long *distanceArr, int pointNum, bool *isfound)
 {
     int minPos = 0;
     unsigned long long min = ULONG_MAX;
