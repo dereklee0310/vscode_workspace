@@ -4,6 +4,7 @@
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+// a node in the linked list 
 struct lt {
     int vertex;
     struct lt *next;
@@ -13,32 +14,44 @@ struct lt **list;
 int *dfn;
 int *low;
 int *articulation;
-int artIndex = 0;
-int idx = 0;
 int startPoint;
+int artIndex = 0;
+int initialIdx = 0;
 int childCnt = 0;
 
+// add a relation between vertices i and j to the adjacency list
 void addVertex(int i, int j);
 
+// find the low, dfn, and articulation points of the graph
 void getArticulation(int curVertex, int preVertex);
 
+// compare function for qsort, sort the articulation points to remove redundant points
 int cmp(const void *num1, const void *num2);
+
+// print the array according to the required format
+void printArr(int *arr, int size);
+
+// free the memory of the adjacency list
+void freeList(struct lt ***list, int vertexNum);
 
 int main() {
     int vertexNum, tmp;
 
     scanf("%d", &startPoint);
-    startPoint--;
+    startPoint--; // starpoint - 1 because of the difference beteen vertex number and array indices
     scanf("%d", &vertexNum);
-
+    
+    list = (struct lt **)malloc(sizeof(struct lt *) * vertexNum);
     dfn = (int *)malloc(sizeof(int) * vertexNum);
     low = (int *)malloc(sizeof(int) * vertexNum);
     articulation = (int *)malloc(sizeof(int) * vertexNum);
 
-    list = (struct lt **)malloc(sizeof(struct lt *) * vertexNum);
-    for(int i = 0; i < vertexNum; i++)
+    for(int i = 0; i < vertexNum; i++) {
         list[i] = NULL;
+        dfn[i] = -1;
+    }
 
+    // build an adjacency list for the graph
     for(int i = 0; i < vertexNum; i++) {
         for(int j = 0; j < vertexNum; j++) {
             scanf("%d", &tmp);
@@ -47,62 +60,27 @@ int main() {
         }
     }
 
-    // for(int i = 0; i < vertexNum; i++) {
-    //     struct lt *listPtr = list[i];
-    //     while(listPtr) {
-    //         printf("test_%d_%d\n", i, listPtr->vertex);
-    //         listPtr = listPtr->next;
-    //     }
-    // }
-
-    // init
-    for(int i = 0; i < vertexNum; i++)
-        dfn[i] = -1;
-
-    getArticulation(startPoint, -1);
-
+    getArticulation(startPoint, -1); // the parent of the root is set to -1
     if(childCnt > 1)
-        articulation[artIndex++] = startPoint;
+        articulation[artIndex++] = startPoint; // check if the root is an articulation point
 
-    for(int i = 0; i < vertexNum; i++) {
-        printf("%d", dfn[i]);
-        if(i != vertexNum - 1)
-            putchar(' ');
-        else
-            putchar('\n');
-    }
-    for(int i = 0; i < vertexNum; i++) {
-        printf("%d", low[i]);
-        if(i != vertexNum - 1)
-            putchar(' ');
-        else
-            putchar('\n');
-    }
-
-    // condition for only 1 point
-    // if(vertexNum == 1) {
-    //     printf("1\n");
-    //     return 0;
-    // }
-
+    printArr(dfn, vertexNum);
+    printArr(low, vertexNum);
 
     qsort(articulation, artIndex, sizeof(int), cmp);
     for(int i = 0; i < artIndex; i++)
         articulation[i]++;
 
-    // test
-    for(int i = 0; i < artIndex; i++)
-        printf("test_%d\n", articulation[i]);
+    printf("%d", articulation[0]);
+    for(int i = 1; i < artIndex; i++)
+        if(articulation[i - 1] != articulation[i])
+            printf(" %d", articulation[i]);
+    putchar('\n');
 
-    for(int i = 0; i < artIndex; i++) {
-        if(i == 0 || articulation[i - 1] != articulation[i]) {
-            printf("%d", articulation[i]);
-            if(i != vertexNum - 1)
-                putchar(' ');
-            else
-                putchar('\n');
-        }
-    }
+    freeList(&list, vertexNum);
+    free(dfn);
+    free(low);
+    free(articulation);
 
     return 0;
 }
@@ -114,7 +92,7 @@ void addVertex(int i, int j)
     newNode = (struct lt *)malloc(sizeof(struct lt));
     newNode->vertex = j;
     newNode->next = NULL;
-    
+
     if(!list[i]) {
         list[i] = newNode;
     } else {
@@ -130,25 +108,21 @@ void getArticulation(int curVertex, int preVertex)
     int vertex;
     struct lt *listPtr = list[curVertex];
 
-    dfn[curVertex] = idx;
-    low[curVertex] = idx;
-    idx++;
-
+    dfn[curVertex] = initialIdx;
+    low[curVertex] = initialIdx;
+    initialIdx++;
 
     while(listPtr) {
         vertex = listPtr->vertex;
-        if(dfn[vertex] < 0) {
-            getArticulation(vertex, curVertex);
-            low[curVertex] = MIN(low[curVertex], low[vertex]);
 
+        if(dfn[vertex] < 0) {
             if(curVertex == startPoint)
                 childCnt++;
+            getArticulation(vertex, curVertex);
+            low[curVertex] = MIN(low[curVertex], low[vertex]);
  
-            if(low[vertex] >= dfn[curVertex] && curVertex != startPoint) {
-                // printf("low_dfn_%d_%d\n", low[vertex], dfn[curVertex]);
-                // printf("lowIdx_dfnIdx_%d_%d\n", vertex, curVertex);
+            if(low[vertex] >= dfn[curVertex] && curVertex != startPoint)
                 articulation[artIndex++] = curVertex;
-            }
         } else if(vertex != preVertex) {
             low[curVertex] = MIN(low[curVertex], dfn[vertex]);
         }
@@ -159,4 +133,27 @@ void getArticulation(int curVertex, int preVertex)
 int cmp(const void *num1, const void *num2)
 {
     return *(int *)num1 - *(int *)num2;
+}
+
+void printArr(int *arr, int size)
+{
+    for(int i = 0; i < size - 1; i++)
+        printf("%d ", arr[i]);
+    printf("%d\n", arr[size - 1]);
+}
+
+void freeList(struct lt ***list, int vertexNum)
+{   
+    struct lt *listPtr = NULL;
+    struct lt *tmp = NULL;
+
+    for(int i = 0; i < vertexNum; i++) {
+        listPtr = (*list)[i];
+        while(listPtr) {
+            tmp = listPtr;
+            listPtr = listPtr->next;
+            free(tmp);
+        }
+    }
+    free(*list);
 }

@@ -1,176 +1,128 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
 #include <limits.h>
 
-#define MAXLEN  1000000001
+#define MAX  1000000001
 
+// data of a single river
 struct rv {
     char name[11];
     int nearestPoint;
-    unsigned long long distance;
+    int distance;
     int rank;
     int index;
 };
 
-int **createMatrix(int **adjMatrix, int pointNum);
+// create and initialize an adjacency matrix
+int **createMatrix(int **adjMatrix, int vertexNum);
 
-void addEdge(int **adjMatrix, int vertice1, int vertice2, int distance);
+// shortest path algorithm
+int *Dijkstra(int **adjMatrix, int vertexNum);
 
-unsigned long long *Dijkstra(int **adjMatrix, int pointNum);
+// get the unprocessed vertex in gragh, which will be used by Dijkstra algorithm
+int getMin(int *distanceArr, int vertexNum, bool *isfound);
 
-void getDistance(struct rv *river, int riverNum, unsigned long long *distanceArr);
-
+// rank the rivers by their lengths
 void getRank(struct rv *river, int riverNum);
 
-unsigned long long getMin(unsigned long long *distanceArr, int pointNum, bool *isfound);
-
+// compare funciton for qsort, compare two elements by their length;
 int cmp(const void *riv1, const void *riv2);
 
+// compare function for qsort, compare two elements by their original indices;
 int rCmp(const void *riv1, const void *riv2);
 
 int main() {
     struct rv *river;
-    int riverNum, pointNum;
-    int vertice1, vertice2, distance;
-    int **adjMatrix;
-    unsigned long long relationNum;
-    unsigned long long *distanceArr;
+    int riverNum, vertexNum, relationNum;
+    int vertex1, vertex2, distance;
 
-    scanf("%d %d", &riverNum, &pointNum);
-    pointNum++;
+    scanf("%d %d", &riverNum, &vertexNum);
+    vertexNum++; // number of vertex + 1 because of conflence 0
     
     river = (struct rv *)malloc(sizeof(struct rv) * riverNum);
     for(int i = 0; i < riverNum; i++) {
         scanf("%s", river[i].name);
         scanf("%d", &river[i].nearestPoint);
-        scanf("%llu", &river[i].distance);
+        scanf("%d", &river[i].distance);
         river[i].index = i;
     }
 
-    adjMatrix = createMatrix(adjMatrix, pointNum);
-
-    scanf("%llu", &relationNum);
-    for(unsigned long long i = 0; i < relationNum; i++) {
-        scanf("%d", &vertice1);
-        scanf("%d", &vertice2);
+    // build an adjacency matrix for the graph
+    int **adjMatrix = createMatrix(adjMatrix, vertexNum);
+    scanf("%d", &relationNum);
+    for(int i = 0; i < relationNum; i++) {
+        scanf("%d", &vertex1);
+        scanf("%d", &vertex2);
         scanf("%d", &distance);
-        addEdge(adjMatrix, vertice1, vertice2, distance);
+        adjMatrix[vertex1][vertex2] = distance;
     }
 
-    distanceArr = Dijkstra(adjMatrix, pointNum);
-
-    // // test
-    // puts("test");
-    // for(int i = 0; i < pointNum; i++)
-    //     printf("test_%d\n", distanceArr[i]);
-    // for(int i = 0; i < riverNum; i++)
-    //     printf("%s %d\n", river[i].name, river[i].distance);
-
-    getDistance(river, riverNum, distanceArr);
-    // test
+    // find legths of rivers and rank them
+    int *distanceArr = Dijkstra(adjMatrix, vertexNum);
     for(int i = 0; i < riverNum; i++)
-        printf("%s %d\n", river[i].name, river[i].distance);
-
+        river[i].distance += distanceArr[river[i].nearestPoint];
     getRank(river, riverNum);
     for(int i = 0; i < riverNum; i++)
         printf("%s %d\n", river[i].name, river[i].rank);
 
+    free(river);
+    for(int i = 0; i < vertexNum; i++)
+        free(adjMatrix[i]);
+    free(adjMatrix);
+    free(distanceArr);
+
     return 0;
 }
 
-int **createMatrix(int **adjMatrix, int pointNum)
+int **createMatrix(int **adjMatrix, int vertexNum)
 {
-    adjMatrix = (int **)malloc(sizeof(int *) * pointNum);
-    for(int i = 0; i < pointNum; i++)
-        adjMatrix[i] = (int *)malloc(sizeof(int) * pointNum);
+    adjMatrix = (int **)malloc(sizeof(int *) * vertexNum);
+    for(int i = 0; i < vertexNum; i++)
+        adjMatrix[i] = (int *)malloc(sizeof(int) * vertexNum);
 
-    for(int i = 0; i < pointNum; i++)
-        for(int j = 0; j < pointNum; j++) {
-            if(i == j)
-                adjMatrix[i][j] = 0;
-            else
-                adjMatrix[i][j] = MAXLEN;
-        }
+    for(int i = 0; i < vertexNum; i++)
+        for(int j = 0; j < vertexNum; j++)
+            adjMatrix[i][j] = i == j ? 0 : MAX;
+
     return adjMatrix;
 }
 
-void addEdge(int **adjMatrix, int vertice1, int vertice2, int distance)
-{
-    adjMatrix[vertice1][vertice2] = distance;
-}
-
-unsigned long long *Dijkstra(int **adjMatrix, int pointNum)
+int *Dijkstra(int **adjMatrix, int vertexNum)
 {   
-    unsigned long long *distanceArr;
+    int *distanceArr;
     bool *isfound;
-    unsigned long long curPoint;
+    int curPoint;
 
-    distanceArr = (unsigned long long *)malloc(sizeof(unsigned long long) * pointNum);
-    isfound = (bool *)malloc(sizeof(bool) * pointNum);
-    for(int i = 0; i < pointNum; i++) {
+    distanceArr = (int *)malloc(sizeof(int) * vertexNum);
+    isfound = (bool *)malloc(sizeof(bool) * vertexNum);
+    for(int i = 0; i < vertexNum; i++) {
         distanceArr[i] = adjMatrix[0][i];
         isfound[i] = false;
     }
-
-    // for(int i = 0; i < pointNum; i++)
-    //         printf("dijktest_%d\n", distanceArr[i]);
-    //     puts("-first-");
     
     isfound[0] = true;
     distanceArr[0] = 0;
-    for(int i = 0; i < pointNum - 2; i++) {
-        curPoint = getMin(distanceArr, pointNum, isfound);
+    for(int i = 0; i < vertexNum - 2; i++) {
+        curPoint = getMin(distanceArr, vertexNum, isfound);
         isfound[curPoint] = true;
-        for(int j = 0; j < pointNum; j++)
+        for(int j = 0; j < vertexNum; j++)
             if(!isfound[j])
-                if(distanceArr[curPoint] + (unsigned long long)adjMatrix[curPoint][j] < distanceArr[j])
-                    distanceArr[j] = distanceArr[curPoint] + (unsigned long long)adjMatrix[curPoint][j];
-        
-        // // test
-        // for(int i = 0; i < pointNum; i++)
-        //     printf("dijktest_%d\n", distanceArr[i]);
-        // puts("--------------------");
+                if(distanceArr[curPoint] + adjMatrix[curPoint][j] < distanceArr[j])
+                    distanceArr[j] = distanceArr[curPoint] + adjMatrix[curPoint][j];
     }
+
+    free(isfound);
 
     return distanceArr;
 }
 
-void getDistance(struct rv *river, int riverNum, unsigned long long *distanceArr)
+int getMin(int *distanceArr, int vertexNum, bool *isfound)
 {
-    for(int i = 0; i < riverNum; i++)
-        river[i].distance += distanceArr[river[i].nearestPoint];
-}
+    int minPos = -1;
+    int min = INT_MAX;
 
-void getRank(struct rv *river, int riverNum)
-{   
-    int rank = 1;
-
-    qsort(river, riverNum, sizeof(struct rv), cmp); // reverse
-    for(int i = 0; i < riverNum; i++) {
-        if(i == 0) {
-            river[i].rank = rank;
-        } else {
-            if(river[i - 1].distance == river[i].distance)
-                river[i].rank = rank;
-            else
-                river[i].rank = ++rank;
-        }
-    }
-
-    // for(int i = 0; i < riverNum; i++)
-    //     printf("%s %d\n", river[i].name, river[i].distance);
-
-    qsort(river, riverNum, sizeof(struct rv), rCmp); // restore to origin array
-}
-
-unsigned long long getMin(unsigned long long *distanceArr, int pointNum, bool *isfound)
-{
-    int minPos = 0;
-    unsigned long long min = ULONG_MAX;
-
-    for(int i = 0; i < pointNum; i++) {
+    for(int i = 0; i < vertexNum; i++) {
         if(distanceArr[i] < min && !isfound[i]) {
             min = distanceArr[i];
             minPos = i;
@@ -180,10 +132,21 @@ unsigned long long getMin(unsigned long long *distanceArr, int pointNum, bool *i
     return minPos;
 }
 
+void getRank(struct rv *river, int riverNum)
+{   
+    int rank = 1;
+
+    qsort(river, riverNum, sizeof(struct rv), cmp); // sort the rivers by length
+    river[0].rank = rank;
+    for(int i = 1; i < riverNum; i++)
+        river[i].rank = river[i - 1].distance == river[i].distance ? rank : ++rank;
+    qsort(river, riverNum, sizeof(struct rv), rCmp); // restore to the original order
+}
+
 int cmp(const void *riv1, const void *riv2)
 {
-    unsigned long long firstDis = ((struct rv *)riv1)->distance;
-    unsigned long long secondDis = ((struct rv *)riv2)->distance;
+    int firstDis = ((struct rv *)riv1)->distance;
+    int secondDis = ((struct rv *)riv2)->distance;
     
     return (firstDis < secondDis) - (firstDis > secondDis);
 }

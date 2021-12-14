@@ -2,23 +2,25 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX 1000000000
+#define MAX 1000000001
 
-int **createMatrix(int **adjMatrix, int pointNum);
+// create and initialize an adjacency matrix
+int **createMatrix(int **adjMatrix, int vertexNum);
 
-void addEdge(int **adjMatrix, int name1, int name2, int distance);
+// shortest path algorithm
+int *Dijkstra(int **adjMatrix, int vertexNum, int root);
 
-int *Dijkstra(int **adjMatrix, int pointNum, int source);
+// get the unprocessed vertex in gragh, which will be used by Dijkstra algorithm
+int getMin(int *distanceArr, int vertexNum, bool *isfound);
 
-int getMin(int *distanceArr, int pointNum, bool *isfound);
-
+// calculate the total distance from root to all vertices
 int getTotalDistance(int *distanceArr, int nameNum);
 
 int main() {
     int **adjMatrix;
     char names[2048][21];
     int nameNum, edgeNum;
-    int name1, name2, distance;
+    int vertex1, vertex2, distance;
     int totalDistance;
     int minDistance = -1;
     int minIdx = -1;
@@ -30,8 +32,9 @@ int main() {
         for(int i = 0; i < nameNum; i++)
             scanf("%s", names[i]);
         for(int i = 0; i < edgeNum; i++) {
-            scanf("%d %d %d", &name1, &name2, &distance);
-            addEdge(adjMatrix, name1 - 1, name2 - 1, distance);
+            scanf("%d %d %d", &vertex1, &vertex2, &distance);
+            adjMatrix[vertex1][vertex2] = distance;
+            adjMatrix[vertex2][vertex1] = distance;
         }
 
         int *distanceArr = (int *)malloc(sizeof(int) * nameNum);
@@ -39,7 +42,6 @@ int main() {
         for(int i = 0; i < nameNum; i++) {
             distanceArr = Dijkstra(adjMatrix, nameNum, i);
             totalDistance = getTotalDistance(distanceArr, nameNum);
-            // printf("test_%d\n", totalDistance);
             if(minDistance == -1 || totalDistance < minDistance) {
                 minIdx = i;
                 minDistance = totalDistance;
@@ -51,50 +53,45 @@ int main() {
 
         scanf("%d %d", &nameNum, &edgeNum);
     }
+    // todo free memory
 
     return 0;
 }
 
-int **createMatrix(int **adjMatrix, int pointNum)
+int **createMatrix(int **adjMatrix, int vertexNum)
 {
-    adjMatrix = (int **)malloc(sizeof(int *) * pointNum);
-    for(int i = 0; i < pointNum; i++)
-        adjMatrix[i] = (int *)malloc(sizeof(int) * pointNum);
+    adjMatrix = (int **)malloc(sizeof(int *) * vertexNum);
+    for(int i = 0; i < vertexNum; i++)
+        adjMatrix[i] = (int *)malloc(sizeof(int) * vertexNum);
 
-    for(int i = 0; i < pointNum; i++)
-        for(int j = 0; j < pointNum; j++) {
+    for(int i = 0; i < vertexNum; i++)
+        for(int j = 0; j < vertexNum; j++) {
             if(i == j)  
                 adjMatrix[i][j] = 0;
             else
-                adjMatrix[i][j] = 1000000000;
+                adjMatrix[i][j] = MAX;
         }
     return adjMatrix;
 }
 
-void addEdge(int **adjMatrix, int name1, int name2, int distance)
-{
-    adjMatrix[name1][name2] = distance;
-    adjMatrix[name2][name1] = distance;
-}
-
-int *Dijkstra(int **adjMatrix, int pointNum, int source)
+int *Dijkstra(int **adjMatrix, int vertexNum, int root)
 {   
     int *distanceArr;
     bool *isfound;
     int curPoint;
 
-    distanceArr = (int *)malloc(sizeof(int) * pointNum);
-    isfound = (bool *)malloc(sizeof(bool) * pointNum);
-    for(int i = 0; i < pointNum; i++) {
-        distanceArr[i] = adjMatrix[source][i];
+    distanceArr = (int *)malloc(sizeof(int) * vertexNum);
+    isfound = (bool *)malloc(sizeof(bool) * vertexNum);
+    for(int i = 0; i < vertexNum; i++) {
+        distanceArr[i] = adjMatrix[root][i];
         isfound[i] = false;
     }
     
-    isfound[source] = true;
-    distanceArr[source] = 0;
-    for(int i = 0; i < pointNum - 2; i++) {
-        curPoint = getMin(distanceArr, pointNum, isfound);
-        for(int j = 0; j < pointNum; j++)
+    isfound[root] = true;
+    distanceArr[root] = 0;
+    for(int i = 0; i < vertexNum - 2; i++) {
+        curPoint = getMin(distanceArr, vertexNum, isfound);
+        for(int j = 0; j < vertexNum; j++)
             if(!isfound[j])
                 if(distanceArr[curPoint] + adjMatrix[curPoint][j] < distanceArr[j])
                     distanceArr[j] = distanceArr[curPoint] + adjMatrix[curPoint][j];
@@ -103,12 +100,12 @@ int *Dijkstra(int **adjMatrix, int pointNum, int source)
     return distanceArr;
 }
 
-int getMin(int *distanceArr, int pointNum, bool *isfound)
+int getMin(int *distanceArr, int vertexNum, bool *isfound)
 {
-    int minPos = 0;
-    int min = MAX + 1;
+    int minPos = -1;
+    int min = MAX;
 
-    for(int i = 0; i < pointNum; i++) {
+    for(int i = 0; i < vertexNum; i++) {
         if(distanceArr[i] < min && !isfound[i]) {
             min = distanceArr[i];
             minPos = i;
