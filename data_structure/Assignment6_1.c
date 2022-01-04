@@ -5,33 +5,38 @@
 
 #define SWAP(num1, num2) {int tmp; tmp = num1; num1 = num2; num2 = tmp;}
 
+// transform the input into an array of integers
+void getNumbers(char *buf, int *arr);
+
+// implementation of quick sort
 void quicksort(int *arr, int left, int right);
+
+// print out the current array of integers
+void printStep(int *arr);
 
 int dataNum = 0;
 bool isFirst = true;
 
 int main() {
-    char *buf = NULL;
-    int *arr = NULL;
-
-    buf = (char *)malloc(sizeof(char) * 4096);
-    arr = (int *)malloc(sizeof(int) * 4096);
+    char buf[4096];
+    int arr[4096];
 
     fgets(buf, 4097, stdin);
+    getNumbers(buf, arr);
 
+    quicksort(arr, 0, dataNum - 1);
+
+    return 0;
+}
+
+void getNumbers(char *buf, int *arr)
+{
     char *token = strtok(buf, ",");
     while(token != NULL) {
         arr[dataNum] = atoi(token);
         dataNum++;
         token = strtok(NULL, ",");
     }
-
-    // while(scanf("%d", &arr[dataNum]) != EOF)
-    //     dataNum++;
-
-    quicksort(arr, 0, dataNum - 1);
-
-    return 0;
 }
 
 void quicksort(int *arr, int left, int right)
@@ -54,21 +59,23 @@ void quicksort(int *arr, int left, int right)
         } while (i < j);
         SWAP(arr[left], arr[j]);
 
-        if(isFirst)
-            isFirst = false;
-        else
-            printf(" \n");
-        for(int k = 0; k < dataNum; k++) {
-            printf("%d", arr[k]);
-            if(k != dataNum - 1)
-                printf(", ");
-        }
-
-        // printf("%d__%d\n", left, right);
-        // puts("-----------------");
+        printStep(arr);
 
         quicksort(arr,left, j - 1);
         quicksort(arr, j+1, right);
     }
-    
+}
+
+void printStep(int *arr)
+{   
+    // print newline after each line except for the last line
+    if(isFirst)
+        isFirst = false;
+    else
+        putchar('\n');
+    for(int i = 0; i < dataNum; i++) {
+        printf("%d", arr[i]);
+        if(i != dataNum - 1)
+            printf(", ");
+    }
 }

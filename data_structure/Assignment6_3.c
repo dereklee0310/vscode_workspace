@@ -5,52 +5,67 @@
 
 #define SWAP(num1, num2) {int tmp; tmp = num1; num1 = num2; num2 = tmp;}
 
-void insertionsort(int *arr, int size);
+// transform the input into an array of integers
+void getNumbers(char *buf, int *arr);
 
+// implementation of insertion sort
+void insertionsort(int *arr);
+
+// print out the current array of integers
+void printStep(int *arr);
+
+int dataNum = 0;
 bool isFirst = true;
 
 int main() {
-    int size = 0;
     char buf[4096];
     int arr[4096];
 
     fgets(buf, sizeof(buf), stdin);
 
-    char *token = strtok(buf, ",");
-    while(token != NULL) {
-        arr[size] = atoi(token);
-        size++;
-        token = strtok(NULL, ",");
-    }
+    getNumbers(buf, arr);
 
-    insertionsort(arr, size);
+    insertionsort(arr);
 
     return 0;
 }
 
-void insertionsort(int *arr, int size)
-{   
-    for(int i = 0; i < size; i++)
-    {   
-        int key = arr[i]; //key為要插入的數值
-        int j = i - 1; //要比較的資料數
+void getNumbers(char *buf, int *arr)
+{
+    char *token = strtok(buf, ",");
+    while(token != NULL) {
+        arr[dataNum] = atoi(token);
+        dataNum++;
+        token = strtok(NULL, ",");
+    }
+}
 
-        //將資料往後推移一個位值 直到欲插入的數值大於資料或資料結束
-        while(key < arr[j] && j >= 0)
-        {   
+void insertionsort(int *arr)
+{   
+    for(int i = 0; i < dataNum; i++) {   
+        int key = arr[i];
+        int j = i - 1;
+
+        while(key < arr[j] && j >= 0) {   
             arr[j + 1] = arr[j];
             j--;
         }
-        arr[j + 1] = key; //將欲插入的數值放入空出來的位置
+        arr[j + 1] = key;
 
-        if(isFirst)
-            isFirst = false;
-        else
-            printf(" \n");
-        for(int k = 0; k < size; k++) {
-            printf("%d", arr[k]);
-            if(k != size - 1)
-                printf(", ");
-        }
+        printStep(arr);
+    }
+}
+
+void printStep(int *arr)
+{   
+    // print newline after each line except for the last line
+    if(isFirst)
+        isFirst = false;
+    else
+        putchar('\n');
+    for(int i = 0; i < dataNum; i++) {
+        printf("%d", arr[i]);
+        if(i != dataNum - 1)
+            printf(", ");
     }
 }
